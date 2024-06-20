@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"github.com/Fernando-Balieiro/gobank/internal/api"
+)
 
 func main() {
-	fmt.Println("primeiro commit")
+
+	server := api.NewWebServer(":8080")
+	server.Start()
 }

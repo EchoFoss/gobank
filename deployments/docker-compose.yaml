@@ -1,0 +1,10 @@
+services:
+  postgres:
+    container_name: 'gobank_db'
+    image: postgres:latest
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: passwd
+      POSTGRES_DB: gobank

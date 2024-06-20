@@ -4,41 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Fernando-Balieiro/gobank/internal/domain"
+	"github.com/Fernando-Balieiro/gobank/internal/infra/db"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
 
-// WriteJSON TODO: O header não está retornando application/json na resposta da requisição
-func WriteJSON(wr http.ResponseWriter, status int, v any) error {
-	wr.WriteHeader(status)
-	fmt.Println(wr.Header())
-	wr.Header().Set("Content-Type", "application/json")
-	fmt.Println(wr.Header())
-
-	return json.NewEncoder(wr).Encode(v)
-}
-
-type ApiError struct {
-	Error string
-}
-
-type apiFunc func(wr http.ResponseWriter, req *http.Request) error
-
-func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(wr http.ResponseWriter, req *http.Request) {
-		if err := f(wr, req); err != nil {
-			WriteJSON(wr, http.StatusBadRequest, ApiError{err.Error()})
-		}
-	}
-}
-
 type WebServer struct {
 	listenAddr string
+	storage    db.Storage
 }
 
-func NewWebServer(listenAddr string) *WebServer {
-	return &WebServer{listenAddr: listenAddr}
+func NewWebServer(listenAddr string, storage db.Storage) *WebServer {
+	return &WebServer{
+		listenAddr: listenAddr,
+		storage:    storage,
+	}
 }
 
 func (s *WebServer) Start() {
@@ -82,4 +63,26 @@ func (s *WebServer) handleDeleteAccount(wr http.ResponseWriter, req *http.Reques
 }
 func (s *WebServer) handleTransfer(wr http.ResponseWriter, req *http.Request) error {
 	return nil
+}
+
+// WriteJSON TODO: O header não está retornando application/json na resposta da requisição
+func WriteJSON(wr http.ResponseWriter, status int, v any) error {
+	wr.Header().Add("Content-Type", "application/json")
+	wr.WriteHeader(status)
+
+	return json.NewEncoder(wr).Encode(v)
+}
+
+type ApiError struct {
+	Error string
+}
+
+type apiFunc func(wr http.ResponseWriter, req *http.Request) error
+
+func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(wr http.ResponseWriter, req *http.Request) {
+		if err := f(wr, req); err != nil {
+			WriteJSON(wr, http.StatusBadRequest, ApiError{err.Error()})
+		}
+	}
 }

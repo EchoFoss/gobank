@@ -13,6 +13,8 @@ primeiramente, suba o banco de dados para o funcionamento da aplicação:
 make db-up
 ```
 
+Em seguida, rode esse comando para subir a sua aplicação:  
+
 ```shell
 make run
 ``` 

@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Fernando-Balieiro/gobank/internal/domain"
-	"github.com/Fernando-Balieiro/gobank/internal/domain/dtos"
 	"github.com/Fernando-Balieiro/gobank/internal/infra/db"
 	"github.com/gorilla/mux"
 	"log"
@@ -13,23 +11,23 @@ import (
 
 type WebServer struct {
 	listenAddr string
-	storage    db.Storage
+	Storage    db.Storage
 }
 
 func NewWebServer(listenAddr string, storage db.Storage) *WebServer {
 	return &WebServer{
 		listenAddr: listenAddr,
-		storage:    storage,
+		Storage:    storage,
 	}
 }
 
 func (s *WebServer) Start() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/hello", makeHttpHandleFunc(helloWord)).Methods(http.MethodGet)
-
-	router.HandleFunc("/accounts", makeHttpHandleFunc(s.handleAccount))
-	router.HandleFunc("accounts/{accountId}", makeHttpHandleFunc(s.handleGetAccountById)).Methods(http.MethodGet)
+	router.HandleFunc("/hello", SayHello).Methods(http.MethodGet)
+	router.HandleFunc("/accounts", makeHttpHandleFunc(s.handleAccounts))
+	router.HandleFunc("/accounts/{id}", makeHttpHandleFunc(s.handleAccountById))
+	router.HandleFunc("/transfer", makeHttpHandleFunc(s.handleTransfer))
 
 	log.Printf("API running on port %s", s.listenAddr)
 
@@ -39,58 +37,27 @@ func (s *WebServer) Start() {
 	}
 }
 
-func (s *WebServer) handleAccount(wr http.ResponseWriter, req *http.Request) error {
+func (s *WebServer) handleAccounts(wr http.ResponseWriter, req *http.Request) error {
 
 	if req.Method == http.MethodGet {
 		return s.handleGetAccounts(wr, req)
 	}
 	if req.Method == http.MethodPost {
-		return s.handleCreateAccount(wr, req)
+		return s.HandleCreateAccount(wr, req)
+	}
+
+	return fmt.Errorf("method not allowed: %s", req.Method)
+}
+
+func (s *WebServer) handleAccountById(wr http.ResponseWriter, req *http.Request) error {
+	if req.Method == http.MethodGet {
+		return s.handleGetAccountById(wr, req)
 	}
 	if req.Method == http.MethodDelete {
 		return s.handleDeleteAccount(wr, req)
 	}
 
 	return fmt.Errorf("method not allowed: %s", req.Method)
-}
-
-func (s *WebServer) handleGetAccountById(wr http.ResponseWriter, req *http.Request) error {
-	id := mux.Vars(req)["accountId"]
-
-	fmt.Println(id)
-	return WriteJSON(wr, http.StatusOK, &domain.Account{})
-}
-
-// GET /accounts
-func (s *WebServer) handleGetAccounts(wr http.ResponseWriter, req *http.Request) error {
-	accounts, err := s.storage.GetAccounts()
-
-	if err != nil {
-		return err
-	}
-	return WriteJSON(wr, http.StatusOK, &accounts)
-}
-
-func (s *WebServer) handleCreateAccount(wr http.ResponseWriter, req *http.Request) error {
-	createAccountReq := new(dtos.CreateAccountDto)
-	if err := json.NewDecoder(req.Body).Decode(createAccountReq); err != nil {
-		return err
-	}
-
-	account := domain.NewAccount(createAccountReq.FirstName, createAccountReq.LastName)
-
-	if err := s.storage.CreateAccount(account); err != nil {
-		return err
-	}
-
-	return WriteJSON(wr, http.StatusCreated, account)
-
-}
-func (s *WebServer) handleDeleteAccount(wr http.ResponseWriter, req *http.Request) error {
-	return nil
-}
-func (s *WebServer) handleTransfer(wr http.ResponseWriter, req *http.Request) error {
-	return nil
 }
 
 func WriteJSON(wr http.ResponseWriter, status int, v any) error {
@@ -100,8 +67,8 @@ func WriteJSON(wr http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(wr).Encode(v)
 }
 
-type ApiError struct {
-	Error string
+type ErrorAPI struct {
+	Error string `json:"error"`
 }
 
 type apiFunc func(wr http.ResponseWriter, req *http.Request) error
@@ -109,12 +76,10 @@ type apiFunc func(wr http.ResponseWriter, req *http.Request) error
 func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(wr http.ResponseWriter, req *http.Request) {
 		if err := f(wr, req); err != nil {
-			WriteJSON(wr, http.StatusBadRequest, ApiError{err.Error()})
+			err := WriteJSON(wr, http.StatusBadRequest, ErrorAPI{err.Error()})
+			if err != nil {
+				return
+			}
 		}
 	}
-}
-
-func helloWord(wr http.ResponseWriter, req *http.Request) error {
-	_, _ = wr.Write([]byte("hello word"))
-	return nil
 }

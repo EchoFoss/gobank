@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/Fernando-Balieiro/gobank/internal/domain"
 	_ "github.com/lib/pq"
 )
@@ -30,8 +31,13 @@ func (pg *PostgreDb) CreateAccount(account *domain.Account) error {
 }
 
 func (pg *PostgreDb) DeleteAccount(id uint64) error {
-	//TODO implement me
-	panic("implement me")
+	query := `delete from accounts where id = $1`
+	_, err := pg.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("impossible to delete account with id: %d", id)
+	}
+
+	return nil
 }
 
 func (pg *PostgreDb) UpdateAccount(account *domain.Account) error {
@@ -40,7 +46,17 @@ func (pg *PostgreDb) UpdateAccount(account *domain.Account) error {
 }
 
 func (pg *PostgreDb) GetAccountByID(id uint64) (*domain.Account, error) {
-	return nil, nil
+	query := `select * from accounts where id = $1`
+
+	rows, err := pg.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoAccount(rows)
+	}
+	return nil, fmt.Errorf("account with id %d not found", id)
 }
 
 func (pg *PostgreDb) GetAccounts() ([]*domain.Account, error) {
@@ -52,15 +68,7 @@ func (pg *PostgreDb) GetAccounts() ([]*domain.Account, error) {
 
 	var accounts []*domain.Account
 	for rows.Next() {
-		account := new(domain.Account)
-		err := rows.Scan(
-			&account.Id,
-			&account.FirstName,
-			&account.LastName,
-			&account.Number,
-			&account.Balance,
-			&account.CreatedAt)
-
+		account, err := scanIntoAccount(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -104,4 +112,18 @@ func (pg *PostgreDb) CreateAccountTable() error {
 
 	_, err := pg.db.Exec(query)
 	return err
+}
+
+func scanIntoAccount(rows *sql.Rows) (*domain.Account, error) {
+	account := new(domain.Account)
+	err := rows.Scan(
+		&account.Id,
+		&account.FirstName,
+		&account.LastName,
+		&account.Number,
+		&account.Balance,
+		&account.CreatedAt,
+	)
+
+	return account, err
 }

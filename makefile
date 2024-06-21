@@ -6,3 +6,6 @@ run: build
 
 test:
 	@go test -v ./...
+
+db-up:
+	@docker-compose -f ./deployments/docker-compose.yaml up -d

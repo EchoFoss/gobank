@@ -12,6 +12,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	server := api.NewWebServer(":8080")
-	server.Start()
+	if err := storage.Init(); err != nil {
+		log.Fatalln(err)
+	}
+
+	api.NewWebServer(":8080", storage).Start()
 }

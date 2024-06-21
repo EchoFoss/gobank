@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Fernando-Balieiro/gobank/internal/domain"
+	"github.com/Fernando-Balieiro/gobank/internal/domain/dtos"
 	"github.com/Fernando-Balieiro/gobank/internal/infra/db"
 	"github.com/gorilla/mux"
 	"log"
@@ -25,7 +26,10 @@ func NewWebServer(listenAddr string, storage db.Storage) *WebServer {
 func (s *WebServer) Start() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/account", makeHttpHandleFunc(s.handleAccount))
+	router.HandleFunc("/hello", makeHttpHandleFunc(helloWord)).Methods(http.MethodGet)
+
+	router.HandleFunc("/accounts", makeHttpHandleFunc(s.handleAccount))
+	router.HandleFunc("accounts/{accountId}", makeHttpHandleFunc(s.handleGetAccountById)).Methods(http.MethodGet)
 
 	log.Printf("API running on port %s", s.listenAddr)
 
@@ -37,26 +41,50 @@ func (s *WebServer) Start() {
 
 func (s *WebServer) handleAccount(wr http.ResponseWriter, req *http.Request) error {
 
-	if req.Method == "GET" {
-		return s.handleGetAccount(wr, req)
+	if req.Method == http.MethodGet {
+		return s.handleGetAccounts(wr, req)
 	}
-	if req.Method == "POST" {
-		return s.handleGetAccount(wr, req)
+	if req.Method == http.MethodPost {
+		return s.handleCreateAccount(wr, req)
 	}
-	if req.Method == "DELETE" {
-		return s.handleGetAccount(wr, req)
+	if req.Method == http.MethodDelete {
+		return s.handleDeleteAccount(wr, req)
 	}
 
 	return fmt.Errorf("method not allowed: %s", req.Method)
 }
 
-func (s *WebServer) handleGetAccount(wr http.ResponseWriter, req *http.Request) error {
-	account := domain.NewAccount("Fernando", "Balieiro")
-	return WriteJSON(wr, http.StatusOK, account)
+func (s *WebServer) handleGetAccountById(wr http.ResponseWriter, req *http.Request) error {
+	id := mux.Vars(req)["accountId"]
+
+	fmt.Println(id)
+	return WriteJSON(wr, http.StatusOK, &domain.Account{})
+}
+
+// GET /accounts
+func (s *WebServer) handleGetAccounts(wr http.ResponseWriter, req *http.Request) error {
+	accounts, err := s.storage.GetAccounts()
+
+	if err != nil {
+		return err
+	}
+	return WriteJSON(wr, http.StatusOK, &accounts)
 }
 
 func (s *WebServer) handleCreateAccount(wr http.ResponseWriter, req *http.Request) error {
-	return nil
+	createAccountReq := new(dtos.CreateAccountDto)
+	if err := json.NewDecoder(req.Body).Decode(createAccountReq); err != nil {
+		return err
+	}
+
+	account := domain.NewAccount(createAccountReq.FirstName, createAccountReq.LastName)
+
+	if err := s.storage.CreateAccount(account); err != nil {
+		return err
+	}
+
+	return WriteJSON(wr, http.StatusCreated, account)
+
 }
 func (s *WebServer) handleDeleteAccount(wr http.ResponseWriter, req *http.Request) error {
 	return nil
@@ -65,7 +93,6 @@ func (s *WebServer) handleTransfer(wr http.ResponseWriter, req *http.Request) er
 	return nil
 }
 
-// WriteJSON TODO: O header não está retornando application/json na resposta da requisição
 func WriteJSON(wr http.ResponseWriter, status int, v any) error {
 	wr.Header().Add("Content-Type", "application/json")
 	wr.WriteHeader(status)
@@ -85,4 +112,9 @@ func makeHttpHandleFunc(f apiFunc) http.HandlerFunc {
 			WriteJSON(wr, http.StatusBadRequest, ApiError{err.Error()})
 		}
 	}
+}
+
+func helloWord(wr http.ResponseWriter, req *http.Request) error {
+	_, _ = wr.Write([]byte("hello word"))
+	return nil
 }

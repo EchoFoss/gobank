@@ -12,14 +12,15 @@ type PostgreDb struct {
 }
 
 func (pg *PostgreDb) CreateAccount(account *domain.Account) error {
-	query := `insert into accounts (first_name, last_name, balance, created_at)
-    values ($1, $2, $3, $4);`
+	query := `insert into accounts (first_name, last_name, balance, number, created_at)
+    values ($1, $2, $3, $4, $5);`
 
 	_, err := pg.db.Query(
 		query,
 		account.FirstName,
 		account.LastName,
 		account.Balance,
+		account.Number,
 		account.CreatedAt,
 	)
 	if err != nil {
@@ -106,7 +107,7 @@ func (pg *PostgreDb) CreateAccountTable() error {
 				first_name varchar(50),
 				last_name varchar(50),
 				number serial,
-				balance decimal,
+				balance int,
 				created_at timestamptz
 			);`
 

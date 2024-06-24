@@ -23,6 +23,13 @@ func (s *WebServer) HandleCreateAccount(wr http.ResponseWriter, req *http.Reques
 		return err
 	}
 
+	tokenString, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("jwt token: %s\n", tokenString)
+
 	return WriteJSON(wr, http.StatusCreated, account)
 
 }

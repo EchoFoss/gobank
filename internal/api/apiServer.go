@@ -24,10 +24,17 @@ func NewWebServer(listenAddr string, storage db.Storage) *WebServer {
 func (s *WebServer) Start() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/hello", SayHello).Methods(http.MethodGet)
-	router.HandleFunc("/accounts", makeHttpHandleFunc(s.handleAccounts))
-	router.HandleFunc("/accounts/{id}", makeHttpHandleFunc(s.handleAccountById))
-	router.HandleFunc("/transfer", makeHttpHandleFunc(s.handleTransfer))
+	router.HandleFunc("/hello",
+		SayHello).Methods(http.MethodGet)
+
+	router.HandleFunc("/accounts",
+		makeHttpHandleFunc(s.handleAccounts))
+
+	router.HandleFunc("/accounts/{id}",
+		withJWTAuth(makeHttpHandleFunc(s.handleAccountById), s.Storage)).Methods(http.MethodGet)
+
+	router.HandleFunc("/transfer",
+		makeHttpHandleFunc(s.handleTransfer))
 
 	log.Printf("API running on port %s", s.listenAddr)
 

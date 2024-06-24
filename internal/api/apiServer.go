@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	domain "github.com/Fernando-Balieiro/gobank/internal/domain/login"
 	"github.com/Fernando-Balieiro/gobank/internal/infra/db"
 	"github.com/gorilla/mux"
 	"log"
@@ -23,6 +24,9 @@ func NewWebServer(listenAddr string, storage db.Storage) *WebServer {
 
 func (s *WebServer) Start() {
 	router := mux.NewRouter()
+
+	router.HandleFunc("/login",
+		makeHttpHandleFunc(s.handleLogin)).Methods(http.MethodPost)
 
 	router.HandleFunc("/hello",
 		SayHello).Methods(http.MethodGet)
@@ -65,6 +69,50 @@ func (s *WebServer) handleAccountById(wr http.ResponseWriter, req *http.Request)
 	}
 
 	return fmt.Errorf("method not allowed: %s", req.Method)
+}
+
+func (s *WebServer) handleLogin(rw http.ResponseWriter, req *http.Request) error {
+	if req.Method != http.MethodPost {
+		return fmt.Errorf("method not allowed: %s", req.Method)
+	}
+
+	var logreq domain.LoginRequest
+	if err := json.NewDecoder(req.Body).Decode(&logreq); err != nil {
+		return err
+	}
+
+	acc, err := s.Storage.GetAccountbyNumnber(logreq.Number)
+	if err != nil {
+		return err
+	}
+
+	notAuthenticatedError := fmt.Errorf("not authenticated")
+
+	if !acc.PasswordMatches(logreq.Password) {
+		/*	return WriteJSON(rw, http.StatusForbidden, map[string]string{
+			"login": "permission denied",
+		}) */
+		return notAuthenticatedError
+	}
+
+	if acc.Number != logreq.Number {
+		/*return WriteJSON(rw, http.StatusForbidden, map[string]string{
+			"login": "permission denied",
+		})*/
+		return notAuthenticatedError
+	}
+
+	token, err := createJWT(acc)
+	if err != nil {
+		return err
+	}
+
+	resp := domain.LoginResponse{
+		Number: acc.Number,
+		Token:  token,
+	}
+
+	return WriteJSON(rw, http.StatusOK, resp)
 }
 
 func WriteJSON(wr http.ResponseWriter, status int, v any) error {

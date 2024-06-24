@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Fernando-Balieiro/gobank/internal/domain"
+	domain "github.com/Fernando-Balieiro/gobank/internal/domain/account"
 	"github.com/Fernando-Balieiro/gobank/internal/domain/dtos"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -17,18 +17,14 @@ func (s *WebServer) HandleCreateAccount(wr http.ResponseWriter, req *http.Reques
 		return err
 	}
 
-	account := domain.NewAccount(createAccountReq.FirstName, createAccountReq.LastName)
-
-	if err := s.Storage.CreateAccount(account); err != nil {
-		return err
-	}
-
-	tokenString, err := createJWT(account)
+	account, err := domain.NewAccount(createAccountReq.FirstName, createAccountReq.LastName, createAccountReq.Password)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("jwt token: %s\n", tokenString)
+	if err := s.Storage.CreateAccount(account); err != nil {
+		return err
+	}
 
 	return WriteJSON(wr, http.StatusCreated, account)
 

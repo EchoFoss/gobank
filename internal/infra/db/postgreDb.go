@@ -3,8 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Fernando-Balieiro/gobank/internal/domain"
+	domain "github.com/Fernando-Balieiro/gobank/internal/domain/account"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 type PostgreDb struct {
@@ -12,14 +13,15 @@ type PostgreDb struct {
 }
 
 func (pg *PostgreDb) CreateAccount(account *domain.Account) error {
-	query := `insert into accounts (first_name, last_name, balance, number, created_at)
-    values ($1, $2, $3, $4, $5);`
+	query := `insert into accounts (first_name, last_name, balance, encrypted_password, number, created_at)
+    values ($1, $2, $3, $4, $5, $6);`
 
 	_, err := pg.db.Query(
 		query,
 		account.FirstName,
 		account.LastName,
 		account.Balance,
+		account.EncryptedPassword,
 		account.Number,
 		account.CreatedAt,
 	)
@@ -29,6 +31,20 @@ func (pg *PostgreDb) CreateAccount(account *domain.Account) error {
 
 	return nil
 
+}
+
+func (pg *PostgreDb) GetAccountbyNumnber(number int) (*domain.Account, error) {
+	query := `select * from accounts where number = $1;`
+	rows, err := pg.db.Query(query, number)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoAccount(rows)
+	}
+
+	return nil, fmt.Errorf("account with id [%d] not found", number)
 }
 
 func (pg *PostgreDb) DeleteAccount(id uint64) error {
@@ -41,10 +57,10 @@ func (pg *PostgreDb) DeleteAccount(id uint64) error {
 	return nil
 }
 
-func (pg *PostgreDb) UpdateAccount(account *domain.Account) error {
-	//TODO implement me
-	panic("implement me")
-}
+// Possivelmente não será implementado, já que uma conta de banco não tem nada além do saldo atualizado
+//func (pg *PostgreDb) UpdateAccount(account *domain.Account) error {
+//	panic("implement me")
+//}
 
 func (pg *PostgreDb) GetAccountByID(id uint64) (*domain.Account, error) {
 	query := `select * from accounts where id = $1`
@@ -96,17 +112,27 @@ func NewPostgreDb() (*PostgreDb, error) {
 	}, nil
 }
 
+/*
+Init TODO: criar o notification pattern para retornar todos os erros do banco de dados, caso algum aconteça
+*/
 func (pg *PostgreDb) Init() error {
-	return pg.CreateAccountTable()
+	err := pg.createAccountTable()
+	if err != nil {
+		log.Printf("error initializing accounts table if it doesnt exist: %+v", err)
+		return err
+	}
+	return nil
 }
-func (pg *PostgreDb) CreateAccountTable() error {
+func (pg *PostgreDb) createAccountTable() error {
+
 	query :=
 		`create table if not exists accounts
 			(
 				id serial primary key,
 				first_name varchar(50),
 				last_name varchar(50),
-				number serial,
+				number int,
+    			encrypted_password text,
 				balance int,
 				created_at timestamptz
 			);`
@@ -116,15 +142,16 @@ func (pg *PostgreDb) CreateAccountTable() error {
 }
 
 func scanIntoAccount(rows *sql.Rows) (*domain.Account, error) {
-	account := new(domain.Account)
+	account := domain.Account{}
 	err := rows.Scan(
 		&account.Id,
 		&account.FirstName,
 		&account.LastName,
 		&account.Number,
+		&account.EncryptedPassword,
 		&account.Balance,
 		&account.CreatedAt,
 	)
 
-	return account, err
+	return &account, err
 }

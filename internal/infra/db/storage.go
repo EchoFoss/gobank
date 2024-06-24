@@ -1,13 +1,11 @@
 package db
 
-import (
-	"github.com/Fernando-Balieiro/gobank/internal/domain"
-)
+import domain "github.com/Fernando-Balieiro/gobank/internal/domain/account"
 
 type Storage interface {
-	CreateAccount(account *domain.Account) error
+	CreateAccount(domain *domain.Account) error
 	DeleteAccount(id uint64) error
-	UpdateAccount(*domain.Account) error
 	GetAccountByID(id uint64) (*domain.Account, error)
 	GetAccounts() ([]*domain.Account, error)
+	GetAccountbyNumnber(number int) (*domain.Account, error)
 }

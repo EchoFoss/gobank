@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/Fernando-Balieiro/gobank/internal/domain"
+	domain "github.com/Fernando-Balieiro/gobank/internal/domain/account"
 	"github.com/Fernando-Balieiro/gobank/internal/infra/db"
 	"github.com/golang-jwt/jwt/v5"
 	"log"
@@ -15,6 +15,7 @@ func permissionDenied(w http.ResponseWriter) {
 	_ = WriteJSON(w, http.StatusForbidden, ErrorAPI{"permission denied"})
 }
 
+// TODO: Implementar SRP nessa função para desacoplar a funcionalidade dela
 func withJWTAuth(handlerFunc http.HandlerFunc, store db.Storage) http.HandlerFunc {
 	return func(wr http.ResponseWriter, req *http.Request) {
 		fmt.Println("calling JWT auth middleware")

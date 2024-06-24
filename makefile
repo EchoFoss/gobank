@@ -4,8 +4,11 @@ build:
 run: build
 	@./bin/gobank
 
+seed: build
+	@./bin/gobank --seed
+
 test:
-	@go test -v ./...
+	@go test ./... -v
 
 db-up:
 	@docker-compose -f ./deployments/docker-compose.yaml up -d

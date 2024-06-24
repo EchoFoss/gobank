@@ -13,10 +13,20 @@ primeiramente, suba o banco de dados para o funcionamento da aplicação:
 make db-up
 ```
 
+Agora, faça o seeding do nosso banco de dados rodando o comando:
+
+```shell
+make seed
+```
+
 Em seguida, rode esse comando para subir a sua aplicação:  
 
 ```shell
 make run
 ``` 
+
+Você também pode rodar ```make test``` para verificar se os testes do proejeto passam 
+
+Para saber os endpoints desta api de forma mais fácil, você pode consultar a página [rotas](./ENDPOINTS.md)
 
 Pronto! Agora usua aplicação está rodando na porta 8080!

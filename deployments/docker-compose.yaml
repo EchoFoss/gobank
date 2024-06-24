@@ -1,5 +1,5 @@
 services:
-  postgres:
+  devDb:
     container_name: 'gobank_db'
     image: postgres:latest
     ports:

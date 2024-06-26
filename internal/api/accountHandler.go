@@ -32,7 +32,32 @@ func (s *WebServer) HandleCreateAccount(wr http.ResponseWriter, req *http.Reques
 
 // HandleGetAccounts GET /accounts
 func (s *WebServer) handleGetAccounts(wr http.ResponseWriter, req *http.Request) error {
-	accounts, err := s.Storage.GetAccounts()
+	searchQuery := req.URL.Query()
+
+	search := searchQuery.Get("search")
+	mapErrs := make(map[string]string)
+
+	sort := searchQuery.Get("sort")
+
+	limit := searchQuery.Get("limit")
+
+	limitNum, err := strconv.Atoi(limit)
+	if err != nil {
+		mapErrs["limit is not a number"] = "Limit must be an integer"
+	}
+
+	page := searchQuery.Get("page")
+
+	pageNum, err := strconv.Atoi(page)
+	if err != nil {
+		mapErrs["page is not a number"] = "Page must be an integer"
+	}
+
+	if len(mapErrs) > 0 && mapErrs != nil {
+		return WriteJSON(wr, http.StatusBadRequest, mapErrs)
+	}
+
+	accounts, err := s.Storage.GetAccounts(search, sort, limitNum, pageNum)
 
 	if err != nil {
 		return err

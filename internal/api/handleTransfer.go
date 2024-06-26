@@ -13,11 +13,25 @@ func (s *WebServer) handleTransfer(wr http.ResponseWriter, req *http.Request) er
 	if err := json.NewDecoder(req.Body).Decode(&transferReq); err != nil {
 		return err
 	}
+
 	defer func() {
 		err := req.Body.Close()
 		if err != nil {
 			log.Println(err)
 		}
 	}()
-	return WriteJSON(wr, http.StatusOK, transferReq)
+
+	if err := transferReq.ValidateAmount(); err != nil {
+		return err
+	}
+
+	err := s.Storage.TransferMoney(transferReq.FromAccountId, transferReq.ToAccountId, transferReq.Amount)
+
+	if err != nil {
+		return WriteJSON(wr, http.StatusBadRequest, map[string]string{
+			"error transfering money": err.Error(),
+		})
+	}
+
+	return WriteJSON(wr, http.StatusOK, "transfer succeeded")
 }

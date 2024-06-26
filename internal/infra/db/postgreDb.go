@@ -33,7 +33,7 @@ func (pg *PostgreDb) CreateAccount(account *domain.Account) error {
 
 }
 
-func (pg *PostgreDb) GetAccountbyNumnber(number int) (*domain.Account, error) {
+func (pg *PostgreDb) GetAccountByNumber(number int) (*domain.Account, error) {
 	query := `select * from accounts where number = $1;`
 	rows, err := pg.db.Query(query, number)
 	if err != nil {
@@ -76,24 +76,61 @@ func (pg *PostgreDb) GetAccountByID(id uint64) (*domain.Account, error) {
 	return nil, fmt.Errorf("account with id %d not found", id)
 }
 
-func (pg *PostgreDb) GetAccounts() ([]*domain.Account, error) {
-	rows, err := pg.db.Query(`select * from accounts;`)
+func (pg *PostgreDb) GetAccounts(searchQuery, sort string, limit, page int) ([]*domain.Account, error) {
 
-	if err != nil {
-		return nil, err
+	/*
+		query exemplo:
+		`select * from accounts
+		where lower(first_name) like lower('John')
+		  or lower(last_name) like lower('John')
+		order by number desc
+		limit 20 offset 10;`
+	*/
+
+	offset := (page - 1) * limit
+
+	var query string
+	if sort == "asc" {
+		query = `select * from accounts 
+		where lower(first_name) like lower($1)
+		or lower(last_name) like lower($2) 
+		order by number asc 
+		limit $3 offset $4;`
+	} else if sort == "desc" {
+		query = `select * from accounts 
+		where lower(first_name) like lower($1)
+		or lower(last_name) like lower($2) 
+		order by number desc 
+		limit $3 offset $4;`
+	} else {
+		return nil, fmt.Errorf("sorting not supported")
 	}
 
-	var accounts []*domain.Account
+	stmt, err := pg.db.Prepare(query)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare statement: %s\n", err)
+	}
+
+	defer stmt.Close()
+
+	rows, err := stmt.Query(searchQuery, searchQuery, limit, offset)
+
+	if err != nil {
+		return nil, fmt.Errorf("error querying db: %+v", err)
+	}
+
+	var accountList []*domain.Account
 	for rows.Next() {
 		account, err := scanIntoAccount(rows)
+
 		if err != nil {
 			return nil, err
 		}
-
-		accounts = append(accounts, account)
+		accountList = append(accountList, account)
 	}
 
-	return accounts, nil
+	return accountList, nil
 }
 
 func NewPostgreDb() (*PostgreDb, error) {

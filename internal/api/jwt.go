@@ -26,14 +26,12 @@ func withJWTAuth(handlerFunc http.HandlerFunc, store db.Storage) http.HandlerFun
 
 		if err != nil {
 			permissionDenied(wr)
-			log.Printf("Erro ao validar jwt: %+v\n", err)
 			return
 		}
 
 		// não sei se isso é redundante
 		if !token.Valid {
 			permissionDenied(wr)
-			log.Printf("jwt não é valido: %+v\n", err)
 			return
 		}
 
@@ -47,14 +45,12 @@ func withJWTAuth(handlerFunc http.HandlerFunc, store db.Storage) http.HandlerFun
 		if err != nil {
 			//permissionDenied(wr)
 			permissionDenied(wr)
-			log.Printf("não foi possível pegar o ID do usuário em jwt.go: %+v\n", err)
 
 			return
 		}
 
 		if err != nil {
 			permissionDenied(wr)
-			log.Printf("not abled to convert accountNumber to int")
 			return
 		}
 
@@ -66,31 +62,30 @@ func withJWTAuth(handlerFunc http.HandlerFunc, store db.Storage) http.HandlerFun
 			procurar na funcão de dar um get na secret
 		*/
 		claims := token.Claims.(jwt.MapClaims)
+
 		accountNumber := claims["accountNumber"].(string)
+		expiresAtTime, err := time.Parse(time.UnixDate, claims["expiresAt"].(string))
+
+		if expiresAtTime.Before(time.Now()) {
+			permissionDenied(wr)
+			return
+		}
+
+		if err != nil {
+			log.Println("error loading timezone")
+		}
+
 		accountNumberParsed, err := strconv.Atoi(accountNumber)
 		if err != nil {
 			permissionDenied(wr)
-			//log.Printf("%+v", err)
-			//log.Println(claims["accountNumber"])
 			return
 		}
 		if user.Number != accountNumberParsed {
 			permissionDenied(wr)
-			//log.Printf("JWT Account Number: %d", claims["accountNumber"])
-			//log.Printf("Account number: %d", user.Number)
 			return
 
 		}
-		// Mapa mental do que posso fazer
-		//account, err := store.GetUserByJWTToken(token)
-		//// /account/{id}
-		//
-		//claims := token.Claims.(jwt.MapClaims)
-		//if claims["Id"] == account.Id {
-		//
-		//}
-		//fmt.Println(claims)
-		//fmt.Println(userID)
+
 		handlerFunc(wr, req)
 	}
 }
@@ -113,7 +108,7 @@ func getJWTSecret() string {
 }
 
 func createJWT(account *domain.Account) (string, error) {
-	expirationDate := jwt.NewNumericDate(time.Now().Add(time.Hour * 15))
+	expirationDate := jwt.NewNumericDate(time.Now().Add(time.Hour * 15).UTC())
 
 	claims := jwt.MapClaims{
 		"expiresAt": expirationDate,

@@ -81,7 +81,7 @@ func (s *WebServer) handleLogin(rw http.ResponseWriter, req *http.Request) error
 		return err
 	}
 
-	acc, err := s.Storage.GetAccountbyNumnber(logreq.Number)
+	acc, err := s.Storage.GetAccountByNumber(logreq.Number)
 	if err != nil {
 		return err
 	}

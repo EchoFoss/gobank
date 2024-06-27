@@ -35,6 +35,7 @@ func (s *WebServer) handleGetAccounts(wr http.ResponseWriter, req *http.Request)
 	searchQuery := req.URL.Query()
 
 	search := searchQuery.Get("search")
+	searchWildCard := fmt.Sprintf("%%%s%%", search)
 	mapErrs := make(map[string]string)
 
 	sort := searchQuery.Get("sort")
@@ -57,7 +58,7 @@ func (s *WebServer) handleGetAccounts(wr http.ResponseWriter, req *http.Request)
 		return WriteJSON(wr, http.StatusBadRequest, mapErrs)
 	}
 
-	accounts, err := s.Storage.GetAccounts(search, sort, limitNum, pageNum)
+	accounts, err := s.Storage.GetAccounts(searchWildCard, sort, limitNum, pageNum)
 
 	if err != nil {
 		return err

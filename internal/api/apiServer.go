@@ -37,9 +37,6 @@ func (s *WebServer) Start() {
 	router.HandleFunc("/accounts/{id}",
 		withJWTAuth(makeHttpHandleFunc(s.handleAccountById), s.Storage)).Methods(http.MethodGet)
 
-	router.HandleFunc("/transfer",
-		makeHttpHandleFunc(s.handleTransfer))
-
 	log.Printf("API running on port %s", s.listenAddr)
 
 	err := http.ListenAndServe(s.listenAddr, router)

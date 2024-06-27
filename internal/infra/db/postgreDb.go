@@ -78,15 +78,6 @@ func (pg *PostgreDb) GetAccountByID(id uint64) (*domain.Account, error) {
 
 func (pg *PostgreDb) GetAccounts(searchQuery, sort string, limit, page int) ([]*domain.Account, error) {
 
-	/*
-		query exemplo:
-		`select * from accounts
-		where lower(first_name) like lower('John')
-		  or lower(last_name) like lower('John')
-		order by number desc
-		limit 20 offset 10;`
-	*/
-
 	offset := (page - 1) * limit
 
 	var query string
@@ -170,7 +161,7 @@ func (pg *PostgreDb) createAccountTable() error {
 				last_name varchar(50),
 				number int,
     			encrypted_password text,
-				balance int,
+				balance decimal(12, 2),
 				created_at timestamptz
 			);`
 
